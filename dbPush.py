@@ -1,9 +1,11 @@
+from flask import Flask, jsonify
 import psycopg2
 import paho.mqtt.client as mqtt
-import json
-
+from waitress import serve
 from datetime import datetime
 import pytz
+
+app = Flask(__name__)
 
 IST = pytz.timezone("Asia/Kolkata")
 
@@ -58,29 +60,17 @@ def create_table():
 # Insert Data into Database
 def insert_data(userid, hivenumber, data):
     conn = connect_db()
-    temperature1 = data["temperature1"]
-    humidity1 = data["humidity1"]
-    temperature2 = data["temperature2"]
-    humidity2 = data["humidity2"]
-    load = data["weight"]
-    print(data)
-    
     if conn:
-        
-            timestamp = datetime.now(pytz.utc).astimezone(IST)
-            print(f"{userid}, {hivenumber}, {temperature1}, {humidity1}, {temperature1}, {humidity1}, {load}, {timestamp}")
-            
-            cur = conn.cursor()
-            cur.execute("""
-                INSERT INTO HiveSensorData (userid, hivenumber, temperature1, humidity1, temperature2, humidity2, load, timestamp) 
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s);
-            """, (userid, hivenumber, temperature1, humidity1, temperature2, humidity2, load, timestamp))
-            conn.commit()
-            cur.close()
-            conn.close()
-            print(f"✅ Stored: {userid} | {hivenumber} | {temperature1} | {humidity1} | {temperature2} | {humidity2} | {load} | {timestamp}")
-        # except Exception as e:
-        #     print(f"⚠️ Error inserting data: {e}")
+        timestamp = datetime.now(pytz.utc).astimezone(IST)
+        cur = conn.cursor()
+        cur.execute("""
+            INSERT INTO HiveSensorData (userid, hivenumber, temperature1, humidity1, temperature2, humidity2, load, timestamp) 
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s);
+        """, (userid, hivenumber, data["temperature1"], data["humidity1"], data["temperature2"], data["humidity2"], data["weight"], timestamp))
+        conn.commit()
+        cur.close()
+        conn.close()
+        #print(f"✅ Stored: {userid} | {hivenumber} | {data}")
 
 # MQTT Callbacks
 def on_connect(client, userdata, flags, rc):
@@ -91,37 +81,39 @@ def on_connect(client, userdata, flags, rc):
         print(f"⚠️ Failed to connect, return code {rc}")
 
 def on_message(client, userdata, msg):
-    """ Process MQTT message and store it in the database """
-  
     payload = msg.payload.decode()
-    print(payload)
-    dict = {}
-
-    datas = payload.split(",")
-    for data in datas:
-        values = data.split(":")
-        dict[values[0]] = values[1]
-        
-        # Extract User ID, Hive Number, and Sensor Type
-    _, userid, hivenumber, data = msg.topic.split("/")
-
-        # Store in database
-    insert_data(userid, hivenumber, dict)
-
-    # except Exception as e:
-    #     print(f"⚠️ Error processing message: {e}")
+    data_dict = {}
+    for item in payload.split(","):
+        key, value = item.split(":")
+        data_dict[key] = value
+    _, userid, hivenumber, _ = msg.topic.split("/")
+    insert_data(userid, hivenumber, data_dict)
 
 # Setup MQTT Client
 mqtt_client = mqtt.Client()
 mqtt_client.username_pw_set(MQTT_USERNAME, MQTT_PASSWORD)
-mqtt_client.tls_set()  # Secure connection
-
+mqtt_client.tls_set()
 mqtt_client.on_connect = on_connect
 mqtt_client.on_message = on_message
 
-# Create table before starting MQTT
-create_table()
+# Start MQTT in a separate thread
+def start_mqtt():
+    mqtt_client.connect(MQTT_BROKER, MQTT_PORT)
+    mqtt_client.loop_start()
 
-# Connect to MQTT and start listening
-mqtt_client.connect(MQTT_BROKER, MQTT_PORT)
-mqtt_client.loop_forever()  # Keep running
+@app.route("/data", methods=["GET"])
+def get_data():
+    conn = connect_db()
+    if conn:
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM HiveSensorData ORDER BY timestamp DESC LIMIT 10;")
+        rows = cur.fetchall()
+        cur.close()
+        conn.close()
+        return jsonify(rows)
+    return jsonify({"error": "Database connection failed"}), 500
+
+if __name__ == "__main__":
+    create_table()
+    start_mqtt()
+    serve(app, host="0.0.0.0", port=5000)
