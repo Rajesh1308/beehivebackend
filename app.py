@@ -17,6 +17,7 @@ DB_CONFIG = {
 }
 
 # MQTT Configuration
+
 MQTT_BROKER = "fa462ba4ab664fe6a8a9c40b953e889f.s1.eu.hivemq.cloud"
 MQTT_PORT = 8883
 MQTT_USERNAME = "Useitforall123"

@@ -50,10 +50,9 @@ def get_sensor_data():
         # Safe query using parameterized statements
         query = """
             SELECT 
-                temperature, 
-                humidity, 
-                load, 
-                sound, 
+                temperature1, 
+                humidity1, 
+                load,  
                 CAST(timestamp AS timestamptz) AT TIME ZONE 'Asia/Kolkata' AS ist_timestamp
             FROM HiveSensorData
             WHERE userid::TEXT = %s 
