@@ -66,14 +66,12 @@ def get_sensor_data():
         temperature = []
         humidity = []
         load = []
-        sound = []
         timestamps = []
 
         for result in results:
             temperature.append(result[0])
             humidity.append(result[1])
             load.append(result[2])
-            sound.append(result[3])
             timestamps.append(result[4])
 
         # Close the database connection
@@ -87,7 +85,6 @@ def get_sensor_data():
             "temperature": temperature[::-1],
             "humidity":humidity[::-1],
             "load": load[::-1],
-            "sound": sound[::-1],
             "timestamps": timestamps[::-1]
         }
 
