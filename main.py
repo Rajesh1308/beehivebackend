@@ -10,10 +10,10 @@ CORS(app)
 
 # Database Connection Details
 DB_CONFIG = {
-    "dbname": "beehivedata",
-    "user": "beehivedata_user",
-    "password": "RIlW7IsGOIgGEEIJdIas4hkqfA3yIock",
-    "host": "dpg-cv1cfsdds78s73dnfebg-a.oregon-postgres.render.com",
+    "dbname": "beehivedata_ongn",
+    "user": "rajesh",
+    "password": "RfhhVrH6F0kvP3ztFmGum83NKCzWliOu",
+    "host": "dpg-d048dks9c44c739cikpg-a.oregon-postgres.render.com",
     "port": "5432"
 }
 
