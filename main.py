@@ -67,12 +67,13 @@ def get_sensor_data():
         humidity = []
         load = []
         timestamps = []
+        print(results)
 
         for result in results:
             temperature.append(result[0])
             humidity.append(result[1])
             load.append(result[2])
-            timestamps.append(result[4])
+            timestamps.append(result[3])
 
         # Close the database connection
         cur.close()
